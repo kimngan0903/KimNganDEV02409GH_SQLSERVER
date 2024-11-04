@@ -844,16 +844,74 @@ WHERE MaMH NOT IN (
 GO
 
 --- 7. Danh sách những sinh viên có điểm thi môn Đồ hoạ nhỏ hơn điểm thi môn Đồ hoạ nhỏ nhất của sinh viên khoa Tin học
+SELECT Ketqua.MaSV as [Mã sinh viên]
+	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
+	, Diem as [Điểm]
+FROM Ketqua
+JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
+JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
+WHERE TenMH = N'Đồ họa'
+  AND Diem < (SELECT MIN(Diem)
+              FROM Ketqua
+              JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
+              JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
+              WHERE TenMH = N'Đồ họa' 
+                AND SinhVien.MaKH = 'TH')
+GO
 
 --- 8. Liệt kê những sinh viên sinh sau sinh viên có tuổi nhỏ nhất trong khoa Anh văn
+SELECT MaSV as [Mã sinh viên]
+	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
+	, NgaySinh as [Ngày sinh]
+FROM SinhVien
+WHERE NgaySinh > (SELECT MIN(NgaySinh)
+                  FROM SinhVien
+                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh văn'))
+GO
 
 --- 9. Cho biết những sinh viên có học bổng lớn hơn tổng học bổng của những sinh viên thuộc khoa Triết
+SELECT MaSV as [Mã sinh viên]
+	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
+	, HocBong as [Học bổng]
+FROM SinhVien
+WHERE HocBong > (SELECT SUM(HocBong)
+                 FROM SinhVien
+                 WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Triết'))
+GO
 
 --- 10. Danh sách sinh viên có nơi sinh cùng với nơi sinh của sinh viên có học bổng lớn nhất trong khoa Lý
+SELECT MaSV as [Mã sinh viên]
+	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
+	, NoiSinh as [Nơi sinh]
+FROM SinhVien
+WHERE NoiSinh = (SELECT NoiSinh
+                 FROM SinhVien
+                 WHERE HocBong = (SELECT MAX(HocBong)
+                                  FROM SinhVien
+                                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Lý')))
+GO
 
 --- 11. Danh sách sinh viên có điểm cao nhất ứng với mỗi môn, gồm thông tin: Mã sinh viên, Họ tên sinh viên, Tên môn, Điểm
+SELECT Ketqua.MaSV as [Mã sinh viên]
+	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
+	, TenMH as [Tên môn học]
+	, Diem as [Điểm]
+FROM Ketqua
+JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
+JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
+WHERE Diem = (SELECT MAX(Diem)
+              FROM Ketqua AS DiemThiSub
+              WHERE DiemThiSub.MaMH = Ketqua.MaMH)
+GO
 
 --- 12. Các sinh viên có học bổng cao nhất theo từng khoa, gồm Mã sinh viên, Tên khoa, Học bổng
+SELECT SinhVien.MaSV, TenKH, HocBong
+FROM SinhVien
+JOIN Khoa ON SinhVien.MaKH = Khoa.MaKH
+WHERE HocBong = (SELECT MAX(HocBong)
+                 FROM SinhVien AS SinhVienSub
+                 WHERE SinhVienSub.MaKH = SinhVien.MaKH)
+GO
 
 --- BÀI 6: Thêm dữ liệu vào CSDL
 --- 1. Thêm một sinh viên mới gồm các thông tin sau:
@@ -882,7 +940,7 @@ INSERT INTO Khoa (MaKH, TenKH)
 VALUES ('CT', N'Công trình');
 
 --- 4. Thêm một sinh viên mới gồm các thông tin sau:
-	-- Mã sinh viên: C02
+	-- Mã sinh viên: C04
 	-- Họ sinh viên: Nguyễn Trần
 	-- Tên sinh viên: Quân
 	-- Phái: Nam
@@ -903,47 +961,138 @@ FROM SinhVien
 WHERE MaKH = 'TH';
 
 --- 6. Thêm vào bảng kết quả gồm các thông tin sau:  
-	-- Mã sinh viên: C02  
+	-- Mã sinh viên: C04 
 	-- Mã môn học: lấy tất cả những môn học có trong bảng môn học  
 	-- Điểm: 8 
 INSERT INTO Ketqua(MaSV, MaMH, Diem)
-SELECT 'C03', MaMH, 8
+SELECT 'C04', MaMH, 8
 FROM MonHoc;
 
 --- BÀI 7: Xoá thông tin trong cơ sở dữ liệu 
 --- 1. Viết câu truy vấn để tạo bảng có tên DeleteTable gồm các thông tin sau: Mã  sinh viên, Họ tên sinh viên, Phái, Ngày sinh, Nơi sinh, Tên khoa, Học bổng 
+CREATE TABLE DeleteTable (
+	[MaSV] [nvarchar](3) NOT NULL,
+	[HoSV] [nvarchar](15) NOT NULL,
+	[TenSV] [nvarchar](7) NOT NULL,
+	[Phai] [bit] NOT NULL,
+	[NgaySinh] [smalldatetime] NOT NULL,
+	[NoiSinh] [nvarchar](100) NOT NULL,
+	[TenKH] [nvarchar](50) NOT NULL,
+	[HocBong] [float] NULL,
+)
+GO
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A01', N'Nguyễn Thị', N'Vân', 0, CAST(N'1986-02-23T00:00:00' AS SmallDateTime), N'Hà Giang', N'Kế toán', 130000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A02', N'Trần Văn', N'Chính', 0, CAST(N'1994-12-20T00:00:00' AS SmallDateTime), N'Bình Định', N'Tin học', 150000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A03', N'Lê Thu Bạch', N'Yến', 1, CAST(N'1993-02-21T00:00:00' AS SmallDateTime), N'Tp. HCM', N'Tin học', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A04', N'Trần Anh', N'Tuấn', 0, CAST(N'1987-12-20T00:00:00' AS SmallDateTime), N'Hà Nội', N'Anh Văn', 80000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A10', N'Trần Thị', N'Mai', 1, CAST(N'1994-10-04T00:00:00' AS SmallDateTime), N'Hà Nội', N'Tin học', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A11', N'Nguyễn Thành', N'Nam', 0, CAST(N'2000-01-01T00:00:00' AS SmallDateTime), N'Cà Mau', N'Anh Văn',NULL)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'A12', N'Nguyễn Quang', N'Quyền', 0, CAST(N'2001-01-01T00:00:00' AS SmallDateTime), N'Đồng Nai', N'Điện tử', NULL)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'B01', N'Hoàng Thanh', N'Mai', 1, CAST(N'1992-08-12T00:00:00' AS SmallDateTime), N'Hải Phòng', N'Triết', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'B02', N'Trần Thị Thu', N'Thủy', 1, CAST(N'1990-01-02T00:00:00' AS SmallDateTime), N'Tp. HCM', N'Anh Văn', 80000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'B03', N'Đố Văn', N'Lâm', 0, CAST(N'1994-02-26T00:00:00' AS SmallDateTime), N'Bình Định', N'Triết', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'B04', N'Bùi Kim', N'Dung', 0, CAST(N'1988-10-18T00:00:00' AS SmallDateTime), N'Hµ Néi', N'Tin học', 170000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'C01', N'Hà Quang', N'Anh', 0, CAST(N'1985-03-11T00:00:00' AS SmallDateTime), N'Tp. HCM', N'Triết', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'C03', N'Lê Quang', N'Lưu', 0, CAST(N'1985-02-23T00:00:00' AS SmallDateTime), N'Hà Nội', N'Tin học', 0)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'T03', N'Hoàng Thị Hải', N'Yến', 1, CAST(N'1989-09-10T00:00:00' AS SmallDateTime), N'Hà Nội', N'Anh Văn', 170000)
+INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'T06', N'Nguyễn Văn', N'Thắng', 0, CAST(N'1988-10-18T00:00:00' AS SmallDateTime), N'Hà Nội', N'Anh Văn', 1500000)
+
 
 --- 2. Xoá tất cả những sinh viên không có học bổng trong bảng DeleteTable  
+DELETE FROM DeleteTable
+WHERE HocBong IS NULL OR HocBong = 0
+GO
 
 --- 3. Xoá tất cả những sinh viên trong bảng DeleteTable sinh vào ngày 20/12/1987 
+DELETE FROM DeleteTable
+WHERE NgaySinh = '1987-12-20';
+GO
 
 --- 4. Xoá tất cả những sinh viên trong bảng DeleteTable sinh trước tháng 3 năm 1987 
+DELETE FROM DeleteTable
+WHERE NgaySinh < '1987-03-01';
+GO
 
 --- 5. Xoá tất cả những sinh viên nam của khoa Tin học trong bảng DeleteTable 
+DELETE FROM DeleteTable
+WHERE Phai = 0 AND TenKH = N'Tin học';
+GO
 
 --- BÀI 8: Cập nhật thông tin trong cơ sở dữ liệu  
---- 1. Cập nhật số tiết của mônVăn phạm thành 45 tiết  
+--- 1. Cập nhật số tiết của môn Văn phạm thành 45 tiết  
+UPDATE MonHoc
+SET SoTiet = 45
+WHERE TenMH = N'Pháp luật đại cương'
+GO
 
---- 2. Cập nhật tên của sinh viên Trần Thanh Mai thành Trần Thanh Kỳ 
+--- 2. Cập nhật tên của sinh viên Nguyễn Thị Vân thành Trần Thanh Kỳ 
+UPDATE SinhVien
+SET HoSV = N'Trần Thanh', TenSV = N'Kỳ'
+WHERE HoSV + ' ' + TenSV = N'Nguyễn Thị Vân'
+GO
 
 --- 3. Cập nhật phái của sinh viên Trần Thanh Kỳ thành phái Nam  
+UPDATE SinhVien
+SET Phai = 0
+WHERE HoSV + ' ' + TenSV = N'Trần Thanh Kỳ'
+GO
 
 --- 4. Cập nhật ngày sinh của sinh viên Trần thị thu Thuỷ thành 05/07/1990  
+UPDATE SinhVien
+SET NgaySinh = '1990-07-05'
+WHERE HoSV + ' ' + TenSV = N'Trần Thị Thu Thủy'
+GO
 
 --- 5. Tăng học bổng cho tất cả những sinh viên của khoa Anh văn thêm 100,000  
+UPDATE SinhVien
+SET HocBong = HocBong + 100000
+WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh văn')
+GO
 
---- 6. Cộng thêm 5 điểm môn Trí Tuệ Nhân Tạo cho các sinh viên thuộc khoa Anh văn.  • Điểm tối đa của môn là 10  
+--- 6. Cộng thêm 5 điểm môn Trí Tuệ Nhân Tạo cho các sinh viên thuộc khoa Anh văn.  
+	-- • Điểm tối đa của môn là 10  
+UPDATE Ketqua
+SET Diem = CASE 
+            WHEN Diem + 5 > 10 THEN 10 
+            ELSE Diem + 5 
+            END
+FROM Ketqua
+JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
+JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
+WHERE MonHoc.TenMH = N'Trí Tuệ Nhân Tạo' 
+  AND SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn')
+GO
 
 --- 7. Tăng học bổng cho sinh viên theo mô tả sau: 
 	-- Nếu là phái nữ của khoa Anh văn thì tăng 100,000  
 	-- Phái nam của khoa Tin học thì tăng 150,000  
 	-- Những sinh viên khác thì tăng 50,000  
+UPDATE SinhVien
+SET HocBong = CASE 
+              WHEN Phai = 1 AND MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn') THEN HocBong + 100000
+              WHEN Phai = 0 AND MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin Học') THEN HocBong + 150000
+              ELSE HocBong + 50000
+              END
+GO
 
 --- 8. Thay đỗi kết quả thi của các sinh viên theo mô tả sau:  
 	-- Nếu sinh viên của khoa Anh văn thì tăng điểm môn Cơ sở dữ liệu lên 2  điểm  
 	-- Nếu sinh viên của khoa Tin học thì giảm điểm môn Cơ sở dữ liệu xuống 1  điểm  
 	-- Những sinh viên của khoa khác thì không thay đổi kết quả  
 	-- Điểm nhỏ nhất là 0 và cao nhất là 10
+UPDATE Ketqua
+SET Diem = CASE 
+            WHEN SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn') AND MonHoc.TenMH = N'Cơ sở dữ liệu' THEN 
+                CASE WHEN Diem + 2 > 10 THEN 10 ELSE Diem + 2 END
+            WHEN SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin Học') AND MonHoc.TenMH = N'Cơ sở dữ liệu' THEN 
+                CASE WHEN Diem - 1 < 0 THEN 0 ELSE Diem - 1 END
+            ELSE Diem
+            END
+FROM Ketqua
+JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
+JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
+WHERE MonHoc.TenMH = N'Cơ sở dữ liệu'
+GO
 
 select * from Ketqua
 select * from MonHoc
