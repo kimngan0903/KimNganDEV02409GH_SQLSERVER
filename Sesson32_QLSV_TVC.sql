@@ -739,7 +739,7 @@ GO
 
 --- BÀI 4: Sử dụng tham số trong truy vấn
 --- 1. Cho biết danh sách những sinh viên của một khoa, gồm: Mã sinh viên, Họ tên sinh viên, Giới tính, Tên khoa. Trong đó, giá trị mã khoa cần xem danh sách sinh viên sẽ được người dùng nhập khi thực thi câu truy vấn
-DECLARE @MaKH NVARCHAR(10) = 'MãKhoaNgườiDùngNhập' 
+DECLARE @MaKH NVARCHAR(10) = N'MãKhoaNgườiDùngNhập' 
 SET @MaKH ='AV'
 SELECT MaSV as [Mã sinh viên]
 	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
@@ -751,7 +751,8 @@ WHERE SinhVien.MaKH = @MaKH
 GO
 
 --- 2. Liệt kê danh sách sinh viên có điểm môn Cơ sở dữ liệu lớn hơn một giá trị bất kỳ do người sử dụng nhập vào khi thực thi câu truy vấn, thông tin gồm: Mã sinh viên, Họ tên sinh viên, Tên môn, Điểm
-DECLARE @DiemLonHon FLOAT = 5.0
+DECLARE @DiemLonHon FLOAT
+SET @DiemLonHon= 5.0
 SELECT SinhVien.MaSV as [Mã sinh viên]
 	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
 	, TenMH as [Tên môn]
@@ -831,7 +832,7 @@ AND MaSV NOT IN (
 )
 GO
 
---- 6. Cho biết môn nào chưa có sinh viên khoa Lý thi
+--- 6. Cho biết môn nào chưa có sinh viên khoa Anh Văn thi
 SELECT MaMH as [Mã môn học]
 	, TenMH as [Tên môn học]
 FROM MonHoc
@@ -839,7 +840,7 @@ WHERE MaMH NOT IN (
     SELECT MaMH
     FROM Ketqua
     JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
-    WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Lý')
+    WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn')
 )
 GO
 
@@ -850,12 +851,12 @@ SELECT Ketqua.MaSV as [Mã sinh viên]
 FROM Ketqua
 JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
 JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
-WHERE TenMH = N'Đồ họa'
+WHERE TenMH = N'Đồ họa ứng dụng'
   AND Diem < (SELECT MIN(Diem)
               FROM Ketqua
               JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
               JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
-              WHERE TenMH = N'Đồ họa' 
+              WHERE TenMH = N'Đồ họa ứng dụng' 
                 AND SinhVien.MaKH = 'TH')
 GO
 
@@ -866,7 +867,7 @@ SELECT MaSV as [Mã sinh viên]
 FROM SinhVien
 WHERE NgaySinh > (SELECT MIN(NgaySinh)
                   FROM SinhVien
-                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh văn'))
+                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn'))
 GO
 
 --- 9. Cho biết những sinh viên có học bổng lớn hơn tổng học bổng của những sinh viên thuộc khoa Triết
@@ -879,7 +880,7 @@ WHERE HocBong > (SELECT SUM(HocBong)
                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Triết'))
 GO
 
---- 10. Danh sách sinh viên có nơi sinh cùng với nơi sinh của sinh viên có học bổng lớn nhất trong khoa Lý
+--- 10. Danh sách sinh viên có nơi sinh cùng với nơi sinh của sinh viên có học bổng lớn nhất trong khoa Anh Văn
 SELECT MaSV as [Mã sinh viên]
 	, HoSV + ' ' + TenSV as [Họ tên sinh viên] 
 	, NoiSinh as [Nơi sinh]
@@ -888,7 +889,7 @@ WHERE NoiSinh = (SELECT NoiSinh
                  FROM SinhVien
                  WHERE HocBong = (SELECT MAX(HocBong)
                                   FROM SinhVien
-                                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Lý')))
+                                  WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn')))
 GO
 
 --- 11. Danh sách sinh viên có điểm cao nhất ứng với mỗi môn, gồm thông tin: Mã sinh viên, Họ tên sinh viên, Tên môn, Điểm
@@ -905,17 +906,20 @@ WHERE Diem = (SELECT MAX(Diem)
 GO
 
 --- 12. Các sinh viên có học bổng cao nhất theo từng khoa, gồm Mã sinh viên, Tên khoa, Học bổng
-SELECT SinhVien.MaSV, TenKH, HocBong
+SELECT MaSV as [Mã sinh viên]
+	, TenSV as [Tên sinh viên]
+	, TenKH as [Tên khoa]
+	, HocBong as [Học bổng]
 FROM SinhVien
 JOIN Khoa ON SinhVien.MaKH = Khoa.MaKH
 WHERE HocBong = (SELECT MAX(HocBong)
-                 FROM SinhVien AS SinhVienSub
-                 WHERE SinhVienSub.MaKH = SinhVien.MaKH)
+                 FROM SinhVien as [Sinh Viên]
+                 WHERE MaKH = SinhVien.MaKH)
 GO
 
 --- BÀI 6: Thêm dữ liệu vào CSDL
 --- 1. Thêm một sinh viên mới gồm các thông tin sau:
-	-- Mã sinh viên: C01
+	-- Mã sinh viên: C02
 	-- Họ sinh viên: Lê Thành
 	-- Tên sinh viên: Nguyên
 	-- Phái: Nam
@@ -927,7 +931,7 @@ INSERT INTO SinhVien (MaSV, HoSV, TenSV, Phai, NgaySinh, NoiSinh, MaKH, HocBong)
 VALUES ('C02', N'Lê Thành', N'Nguyên', 1, '1980-10-20', N'Thành phố Hồ Chí Minh', 'TH', 850.000);
 
 --- 2. Thêm một môn học mới gồm các thông tin sau:
-	-- Mã môn học: 06
+	-- Mã môn học: 10
 	-- Tên môn học: Xử lý ảnh
 	-- Số tiết: 45
 INSERT INTO MonHoc (MaMH, TenMH, SoTiet)
@@ -956,9 +960,10 @@ VALUES ('C04', N'Nguyễn Trần', N'Quân', 1, GETDATE(), N'Huế', 'CT', 950.0
 	-- Mã môn học: 06  
 	-- Điểm: 7  
 INSERT INTO Ketqua(MaSV, MaMH, Diem)
-SELECT MaSV, '10', 7
+
 FROM SinhVien
-WHERE MaKH = 'TH';
+WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin học')
+GO
 
 --- 6. Thêm vào bảng kết quả gồm các thông tin sau:  
 	-- Mã sinh viên: C04 
@@ -996,7 +1001,6 @@ INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSin
 INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'C03', N'Lê Quang', N'Lưu', 0, CAST(N'1985-02-23T00:00:00' AS SmallDateTime), N'Hà Nội', N'Tin học', 0)
 INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'T03', N'Hoàng Thị Hải', N'Yến', 1, CAST(N'1989-09-10T00:00:00' AS SmallDateTime), N'Hà Nội', N'Anh Văn', 170000)
 INSERT [dbo].[DeleteTable] ([MaSV], [HoSV], [TenSV], [Phai], [NgaySinh], [NoiSinh], [TenKH], [HocBong]) VALUES (N'T06', N'Nguyễn Văn', N'Thắng', 0, CAST(N'1988-10-18T00:00:00' AS SmallDateTime), N'Hà Nội', N'Anh Văn', 1500000)
-
 
 --- 2. Xoá tất cả những sinh viên không có học bổng trong bảng DeleteTable  
 DELETE FROM DeleteTable
@@ -1063,6 +1067,15 @@ WHERE MonHoc.TenMH = N'Trí Tuệ Nhân Tạo'
   AND SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn')
 GO
 
+UPDATE Ketqua
+SET Diem = CASE 
+            WHEN Diem + 5 > 10 THEN 10 
+            ELSE Diem + 5 
+            END
+WHERE MaMH = '02'
+AND MaSV IN (SELECT MaSV FROM SinhVien WHERE MaKH = 'AV')
+GO
+
 --- 7. Tăng học bổng cho sinh viên theo mô tả sau: 
 	-- Nếu là phái nữ của khoa Anh văn thì tăng 100,000  
 	-- Phái nam của khoa Tin học thì tăng 150,000  
@@ -1071,6 +1084,14 @@ UPDATE SinhVien
 SET HocBong = CASE 
               WHEN Phai = 1 AND MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn') THEN HocBong + 100000
               WHEN Phai = 0 AND MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin Học') THEN HocBong + 150000
+              ELSE HocBong + 50000
+              END
+GO
+
+UPDATE SinhVien
+SET HocBong = CASE 
+              WHEN Phai = 1 AND MaKH = N'AV' THEN HocBong + 100000
+              WHEN Phai = 0 AND MaKH = N'TH' THEN HocBong + 150000
               ELSE HocBong + 50000
               END
 GO
