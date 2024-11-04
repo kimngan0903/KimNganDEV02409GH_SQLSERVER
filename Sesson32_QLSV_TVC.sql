@@ -1103,17 +1103,26 @@ GO
 	-- Điểm nhỏ nhất là 0 và cao nhất là 10
 UPDATE Ketqua
 SET Diem = CASE 
-            WHEN SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn') AND MonHoc.TenMH = N'Cơ sở dữ liệu' THEN 
+            WHEN MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Anh Văn') AND TenMH = N'Cơ sở dữ liệu' THEN 
                 CASE WHEN Diem + 2 > 10 THEN 10 ELSE Diem + 2 END
-            WHEN SinhVien.MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin Học') AND MonHoc.TenMH = N'Cơ sở dữ liệu' THEN 
+            WHEN MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin Học') AND TenMH = N'Cơ sở dữ liệu' THEN 
                 CASE WHEN Diem - 1 < 0 THEN 0 ELSE Diem - 1 END
             ELSE Diem
             END
 FROM Ketqua
 JOIN SinhVien ON Ketqua.MaSV = SinhVien.MaSV
 JOIN MonHoc ON Ketqua.MaMH = MonHoc.MaMH
-WHERE MonHoc.TenMH = N'Cơ sở dữ liệu'
-GO
+WHERE TenMH = N'Cơ sở dữ liệu'
+GO 
+
+UPDATE Ketqua
+SET Diem = CASE 
+            WHEN MaSV IN (SELECT MaSV FROM SinhVien WHERE MaKH = N'AV') THEN LEAST(Diem + 2, 10)
+            WHEN MaSV IN (SELECT MaSV FROM SinhVien WHERE MaKH = N'TH') THEN GREATEST(Diem - 1, 0)
+            ELSE Diem
+            END
+WHERE MaMH = '01'
+GO 
 
 select * from Ketqua
 select * from MonHoc
