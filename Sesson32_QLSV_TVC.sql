@@ -960,18 +960,29 @@ VALUES ('C04', N'Nguyễn Trần', N'Quân', 1, GETDATE(), N'Huế', 'CT', 950.0
 	-- Mã môn học: 06  
 	-- Điểm: 7  
 INSERT INTO Ketqua(MaSV, MaMH, Diem)
-
+SELECT MaSV, '06', 7
 FROM SinhVien
-WHERE MaKH = (SELECT MaKH FROM Khoa WHERE TenKH = N'Tin học')
+WHERE MaKH = 'TH'
+AND NOT EXISTS (
+    SELECT 1 FROM KetQua 
+    WHERE Ketqua.MaSV = SinhVien.MaSV 
+    AND KetQua.MaMH = '06'
+)
 GO
 
+select * from Ketqua
 --- 6. Thêm vào bảng kết quả gồm các thông tin sau:  
 	-- Mã sinh viên: C04 
 	-- Mã môn học: lấy tất cả những môn học có trong bảng môn học  
 	-- Điểm: 8 
-INSERT INTO Ketqua(MaSV, MaMH, Diem)
-SELECT 'C04', MaMH, 8
-FROM MonHoc;
+INSERT INTO [dbo].[Ketqua] (MaSV, MaMH, Diem)
+SELECT 'C01', M.MaMH, 8 
+FROM [dbo].[MonHoc] M
+WHERE NOT EXISTS (
+    SELECT 1 FROM [dbo].[KetQua] K
+    WHERE K.MaSV = 'C01' AND K.MaMH = M.MaMH
+)
+GO
 
 --- BÀI 7: Xoá thông tin trong cơ sở dữ liệu 
 --- 1. Viết câu truy vấn để tạo bảng có tên DeleteTable gồm các thông tin sau: Mã  sinh viên, Họ tên sinh viên, Phái, Ngày sinh, Nơi sinh, Tên khoa, Học bổng 
