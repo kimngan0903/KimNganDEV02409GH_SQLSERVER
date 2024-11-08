@@ -2,20 +2,6 @@
 --Chu y thay doi thu muc luu tru file .mdf va .ldf
 
 CREATE DATABASE Sesson35_QLBH_TaoThuTuc
-	ON PRIMARY
-	(	Name=QLBanHang_data,
-		FileName='D:\QLBanHang.mdf',
-		Size=5MB,
-		MaxSize=50MB,
-		FileGrowth=10%
-	)
-	LOG ON
-	(	Name=QLBanHang_log,
-		FileName='D:\QLBanHang.ldf',
-		Size=1MB,
-		MaxSize=5MB,
-		FileGrowth=10%
-	)
 GO
 
 USE Sesson35_QLBH_TaoThuTuc
@@ -297,10 +283,72 @@ EXEC spud_LayDanhsach_NHACC
 EXEC spud_LayDanhsach_NHACC @mancc = C04
 
 --- 3. Xây dựng thủ tục liệt kê các cột dữ liệu trong hai bảng dữ liệu PXUAT và CTXUAT và có thêm một cột TENVTU trong bảng VATTU với tên là và có @ spud_PXU spud_PXUAT_BcaoPxuat gồm có 1 tham số vào là: Số phiếu xuất muốn lọc dữ liệu với giá trị mặc định là NULL. Tuy nhiên nếu lúc gọi thực hiện thủ tục mà không truyền giá trị số phiếu xuất vào thì xem như không lọc gì cả, khi đó thủ tục sẽ liệt kê tất cả các phiếu xuất đang có trong bảng PXUAT.
+CREATE PROCEDURE spud_PXUAT_BcaoPxuat
+    @SoPx CHAR(4) = NULL
+AS
+BEGIN
+    SELECT 
+        PXUAT.SoPx AS [Số phiếu xuất],
+        PXUAT.NgayXuat AS [Ngày xuất],
+        PXUAT.TenKH AS [Tên khách hàng],
+        CTPXUAT.Mavtu AS [Mã vật tư],
+        VATTU.Tenvtu AS [Tên vật tư],
+        CTPXUAT.SLXuat AS [Số lượng xuất],
+        CTPXUAT.DGXuat AS [Đơn giá xuất]
+    FROM 
+        PXUAT 
+    JOIN 
+        CTPXUAT ON PXUAT.SoPx = CTPXUAT.SoPx
+    JOIN 
+        VATTU ON CTPXUAT.Mavtu = VATTU.Mavtu
+    WHERE (@SoPx IS NULL OR PXUAT.SoPx = @SoPx)
+END
+GO
+EXEC spud_PXUAT_BcaoPxuat
+EXEC spud_PXUAT_BcaoPxuat @SoPx = 'X001'
 
 --- 4. Xây dựng thủ tục liệt kê các cột dữ liệu trong hai bảng dữ liệu PNHAP và CTNHAP và có thêm một cột TENVTU trong bảng VATTU với tên là spud_PNHAP_BcaoPNhap gồm có 1 tham số vào là: Số phiếu nhập muốn lọc dữ liệu với giá trị mặc định là NULL. Tuy nhiên nếu lúc gọi thực hiện thủ tục mà không truyền giá trị số phiếu nhập vào thì xem như không lọc gì cả, khi đó thủ tục sẽ liệt kê tất cả các phiếu nhập đang có trong bảng PNHAP.
+CREATE PROCEDURE spud_PNHAP_BcaoNhap
+	@SoPn CHAR(4) = NULL
+AS
+BEGIN
+	SELECT
+		PNHAP.SoPn AS [Số phiếu nhập],
+		PNHAP.NgayNhap AS [Ngày nhập],
+		PNHAP.SoDH AS [Số đơn hàng],
+		CTPNHAP.Mavtu AS [Mã vật tư],
+		VATTU.TenVTu AS [Tên vật tư],
+		CTPNHAP.SLNhap AS [Số lượng nhập],
+		CTPNHAP.DGNhap AS [Đơn giá nhập]
+	FROM PNHAP
+	JOIN CTPNHAP ON PNHAP.SoPn = CTPNHAP.SoPn
+	JOIN VATTU ON CTPNHAP.Mavtu = VATTU.Mavtu
+    WHERE (@SoPn IS NULL OR PNHAP.SoPn = @SoPn)
+END
+GO
+EXEC spud_PNHAP_BcaoNhap
+EXEC spud_PNHAP_BcaoNhap @SoPn = 'N001'	
 
 --- 5. Xây dựng thủ tục liệt kê các cột dữ liệu trong bảng TONKHO có thể hiện thêm cột TENVTU trong bảng VATTU với tên spud_TONKHO_BcaoTonkho gồm có 1 tham số vào là: Năm tháng muốn lọc dữ liệu.
+CREATE PROCEDURE spud_TONKHO_BcaoTonkho
+	@NamThang CHAR(6) = NULL
+AS
+BEGIN
+	SELECT
+		TONKHO.NamThang AS [Năm tháng],
+		TONKHO.Mavtu AS [Mã vật tư],
+		VATTU.TenVTu AS [Tên vật tư],
+		TONKHO.SLDau AS [Số lượng đầu],
+		TONKHO.TongSLN AS [Tổng số lượng nhập],
+		TONKHO.TongSLX AS [Tổng số lượng xuất],
+		TONKHO.SLCuoi AS [Số lượng đầu]
+	FROM TONKHO
+	JOIN VATTU ON TONKHO.Mavtu = VATTU.Mavtu
+    WHERE (@NamThang IS NULL OR TONKHO.NamThang = @NamThang)
+END
+GO
+EXEC spud_TONKHO_BcaoTonkho
+EXEC spud_TONKHO_BcaoTonkho @NamThang = '201401'
 
 --- Bài 2: Trong cơ sở dữ liệu quản lý bán hàng, tạo các thủ tục nội tại cập nhật dữ liệu trong bảng VATTU. Các thủ tục này có kiểm tra các ràng buộc dữ liệu và thông báo ra các lỗi rõ ràng khi dữ liệu vi phạm các ràng buộc.
 --- 1. Xây dựng thủ tục thêm mới dữ liệu vào bảng VATTU với tên spud_VATTU_Them gồm có 4 tham số vào chính là giá giá trị thêm mới cho các cột trong bảng VATTU: mã vật tư, tên vật tư, đơn vị tính và phần trăm. Trong đó cần kiểm tra các ràng buộc dữ liệu phải hợp lệ trước khi thực hiện lệnh INSERT INTO để thêm dữ liệu vào bảng VATTU.
@@ -308,12 +356,81 @@ EXEC spud_LayDanhsach_NHACC @mancc = C04
 	-- Tên vật tư phải duy nhất trong bảng VATTU
 	-- Đơn vị tính mặc định là chuỗi rỗng
 	-- 0<= Phần trăm <=100
+CREATE PROCEDURE spud_VATTU_Them
+    @Mavtu CHAR(4),
+    @Tenvtu NVARCHAR(100),
+    @Dvtinh NVARCHAR(10) = '',
+    @Phantram REAL
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM VATTU WHERE Mavtu = @Mavtu)
+    BEGIN
+        RAISERROR('Mã vật tư đã tồn tại trong bảng VATTU.', 16, 1)
+        RETURN
+    END
+
+    IF EXISTS (SELECT 1 FROM VATTU WHERE Tenvtu = @Tenvtu)
+    BEGIN
+        RAISERROR('Tên vật tư đã tồn tại đã tồn tại trong bảng VATTU.', 16, 1)
+        RETURN
+    END
+
+    IF @Phantram < 0 OR @Phantram > 100
+    BEGIN
+        RAISERROR('Phần trăm phải nằm trong khoảng từ 0 đến 100.', 16, 1)
+        RETURN
+    END
+
+    INSERT INTO VATTU (Mavtu, Tenvtu, Dvtinh, Phantram)
+    VALUES (@Mavtu, @Tenvtu, @Dvtinh, @Phantram)
+	PRINT N'Dữ liệu đã được thêm thành công vào bảng VATTU.'
+END
+GO
+EXEC spud_VATTU_Them 
+	@mavtu = 'DD03', 
+	@tenvtu = N'Đầu DVD Sony 3 cửa',
+	@Dvtinh = N'Bộ',
+	@PhanTram = 25
 
 --- 2. Xây dựng thủ tục xóa một vật tư có trong bảng VATTU với tên spud_VATTU_Xoa gồm có 1 tham số vào chính là mã vật tư cần xóa. Trong đó cần kiểm tra ràng buộc dữ liệu trước khi thực hiện lệnh DELETE để xóa dữ liệu trong bảng VATTU.
 	-- Mã vật tư phải chưa có trong bảng CTDONDH
 	-- Mã vật tư phải chưa có trong bảng CTPNHAP
 	-- Mã vật tư phải chưa có trong bảng CTPXUAT
 	-- Mã vật tư phải chưa có trong bảng TONKHO
+CREATE PROCEDURE spud_VATTU_Xoa
+    @Mavtu char(4)  
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM CTDONDH WHERE Mavtu = @Mavtu)
+    BEGIN
+        RAISERROR('Mã vật tư không thể xoá vì đã tồn tại trong bảng CTDONDH.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM CTPNHAP WHERE Mavtu = @Mavtu)
+    BEGIN
+        RAISERROR('Mã vật tư không thể xoá vì đã tồn tại trong bảng CTPNHAP.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM CTPXUAT WHERE Mavtu = @Mavtu)
+    BEGIN
+        RAISERROR('Mã vật tư không thể xoá vì đã tồn tại trong bảng CTPXUAT.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM TONKHO WHERE Mavtu = @Mavtu)
+    BEGIN
+        RAISERROR('Mã vật tư không thể xoá vì đã tồn tại trong bảng TONKHO.', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM VATTU WHERE Mavtu = @Mavtu;
+
+    PRINT N'Dữ liệu vật tư đã được xoá thành công.';
+END
+GO
+EXEC spud_VATTU_Xoa @Mavtu = 'DD01'
 
 --- 3. Xây dựng thủ tục sửa đổi vật tư trong bảng VATTU với tên spud_VATTU_Sua gồm có tối đa 4 tham số vào chính là giá trị cần thay đổi của các cột trong bảng VATTU (trừ cột mã vật tư): mã vật tư, tên vật tư, đơn vị tính và phần trăm. Trong thủ tục chỉ thực hiện lệnh UPDATE SET để cập nhật dữ liệu vào l bảng VATTU với các giá trị tương ứng.
 CREATE PROCEDURE spud_VATTU_Sua
